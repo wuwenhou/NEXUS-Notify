@@ -1,0 +1,11 @@
+[package]
+name = "nexus-policy"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+nexus-domain = { path = "../nexus-domain" }
+serde = { workspace = true }
+thiserror = { workspace = true }

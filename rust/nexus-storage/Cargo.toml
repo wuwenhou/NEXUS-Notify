@@ -1,0 +1,11 @@
+[package]
+name = "nexus-storage"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+nexus-domain = { path = "../nexus-domain" }
+serde = { workspace = true }
+serde_json = { workspace = true }

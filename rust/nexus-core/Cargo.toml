@@ -1,0 +1,17 @@
+[package]
+name = "nexus-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+nexus-domain = { path = "../nexus-domain" }
+nexus-policy = { path = "../nexus-policy" }
+nexus-oem-xiaomi = { path = "../nexus-oem-xiaomi" }
+nexus-fcm = { path = "../nexus-fcm" }
+nexus-audit = { path = "../nexus-audit" }
+nexus-storage = { path = "../nexus-storage" }
+nexus-recovery = { path = "../nexus-recovery" }
+nexus-automation = { path = "../nexus-automation" }
+serde = { workspace = true }

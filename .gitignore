@@ -1,0 +1,6 @@
+/target
+rust/target
+android/.gradle
+android/app/build
+*.so
+*.apk
