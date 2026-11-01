@@ -30,6 +30,10 @@ impl NexusEngine {
     pub fn evaluate(&self, snap: &SystemSnapshot) -> nexus_policy::EvaluationResult {
         self.core.lock().unwrap().evaluate(snap)
     }
+
+    pub fn generate_report(&self, snap: &SystemSnapshot) -> nexus_core::DiagnosticReport {
+        self.core.lock().unwrap().generate_report(snap)
+    }
 }
 
 impl Default for NexusEngine {
@@ -132,6 +136,15 @@ mod uniffi_surface {
         pub action_count: i32,
     }
 
+    #[derive(uniffi::Record)]
+    pub struct UDiagnosticReport {
+        pub device_supported: bool,
+        pub healthy: bool,
+        pub issues: Vec<String>,
+        pub action_count: i32,
+        pub summary: String,
+    }
+
     #[uniffi::export]
     impl NexusEngine {
         #[uniffi::constructor]
@@ -175,6 +188,29 @@ mod uniffi_surface {
                 healthy: res.healthy,
                 issues: res.issues,
                 action_count: res.actions.len() as i32,
+            }
+        }
+
+        pub fn diagnostic_report(
+            &self,
+            gms: UProtectionState,
+            fcm: UCapabilityState,
+            shizuku: bool,
+            device_supported: bool,
+        ) -> UDiagnosticReport {
+            let snap = SystemSnapshot {
+                gms_protection: gms.into(),
+                fcm_connection: fcm.into(),
+                shizuku_available: shizuku,
+                device_supported,
+            };
+            let r = self.generate_report(&snap);
+            UDiagnosticReport {
+                device_supported: r.device_supported,
+                healthy: r.healthy,
+                issues: r.issues,
+                action_count: r.action_count as i32,
+                summary: r.summary,
             }
         }
     }

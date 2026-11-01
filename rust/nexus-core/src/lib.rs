@@ -1,18 +1,31 @@
 //! Orchestrator wiring domain, policy, oem, fcm, audit, storage.
 
 use nexus_audit::AuditLog;
-use nexus_domain::DeviceProfile;
+use nexus_domain::{DeviceProfile, ShizukuStatus};
 use nexus_fcm as fcm;
 use nexus_policy::SystemSnapshot;
 use nexus_oem_xiaomi as oem;
 use nexus_policy::{PolicyEngine, SystemSnapshot as PolicySnapshot};
 use nexus_storage::AppConfig;
 
+#[derive(Debug, Clone)]
+pub struct DiagnosticReport {
+    pub device_supported: bool,
+    pub shizuku: ShizukuStatus,
+    pub gms_protection: nexus_domain::ProtectionState,
+    pub fcm_connection: nexus_domain::CapabilityState,
+    pub healthy: bool,
+    pub issues: Vec<String>,
+    pub action_count: usize,
+    pub summary: String,
+}
+
 pub struct NexusCore {
     pub device: Option<DeviceProfile>,
     pub policy: PolicyEngine,
     pub audit: AuditLog,
     pub config: AppConfig,
+    pub shizuku: ShizukuStatus,
 }
 
 impl NexusCore {
@@ -22,6 +35,7 @@ impl NexusCore {
             policy: PolicyEngine::new(),
             audit: AuditLog::new(500),
             config: AppConfig::new(),
+            shizuku: ShizukuStatus::NotInstalled,
         }
     }
 
@@ -44,6 +58,26 @@ impl NexusCore {
             device_supported: snap.device_supported,
         };
         self.policy.evaluate(&ps).unwrap_or_default()
+    }
+
+    pub fn generate_report(&self, snap: &SystemSnapshot) -> DiagnosticReport {
+        let res = self.evaluate(snap);
+        let device_supported = self.is_supported();
+        let summary = if res.healthy {
+            "No issues detected.".to_string()
+        } else {
+            format!("{} issue(s), {} action(s) planned.", res.issues.len(), res.actions.len())
+        };
+        DiagnosticReport {
+            device_supported,
+            shizuku: self.shizuku,
+            gms_protection: snap.gms_protection,
+            fcm_connection: snap.fcm_connection,
+            healthy: res.healthy,
+            issues: res.issues,
+            action_count: res.actions.len(),
+            summary,
+        }
     }
 
     pub fn fcm_diagnostic_unknown() -> fcm::FcmDiagnostic {
@@ -94,5 +128,19 @@ mod tests {
         };
         let res = core.evaluate(&snap);
         assert!(res.healthy);
+    }
+
+    #[test]
+    fn core_generate_report() {
+        let core = NexusCore::new();
+        let snap = SystemSnapshot {
+            gms_protection: ProtectionState::NotProtected,
+            fcm_connection: CapabilityState::Unknown,
+            shizuku_available: false,
+            device_supported: true,
+        };
+        let r = core.generate_report(&snap);
+        assert!(!r.healthy);
+        assert!(!r.summary.is_empty());
     }
 }

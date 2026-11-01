@@ -168,6 +168,21 @@ impl AuditEntry {
     }
 }
 
+/// Shizuku service status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ShizukuStatus {
+    NotInstalled,
+    NotRunning,
+    PermissionDenied,
+    Available,
+}
+
+impl ShizukuStatus {
+    pub fn is_available(&self) -> bool {
+        matches!(self, ShizukuStatus::Available)
+    }
+}
+
 /// Configuration for a protection module.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModuleConfig {
