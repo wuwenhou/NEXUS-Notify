@@ -223,29 +223,42 @@ uniffi::setup_scaffolding!();
 #[cfg(target_os = "android")]
 mod android_jni {
     use std::os::raw::{c_char, c_void};
+    use nexus_core::NexusCore;
+    use nexus_domain::{CapabilityState, ProtectionState};
+    use nexus_policy::SystemSnapshot;
 
     type JniEnv = *mut c_void;
     type JClass = *mut c_void;
-    type JObject = *mut c_void;
     type JString = *mut c_void;
 
-    // JNINativeInterface function table. Indices per standard JNI (stable).
-    // NewStringUTF is at index 167.
     const NEW_STRING_UTF_IDX: usize = 167;
 
-    #[repr(C)]
-    struct JniFnTable {
-        // We only need a pointer array; access by index.
-        _pad: [usize; 0],
-    }
-
     unsafe fn new_string_utf(env: JniEnv, s: *const c_char) -> JString {
-        // env is JNIEnv* = *mut *const JNINativeInterface
         let table_ptr = *(env as *mut *const usize);
         let fn_ptr = *table_ptr.add(NEW_STRING_UTF_IDX);
         let f: unsafe extern "system" fn(JniEnv, *const c_char) -> JString =
             std::mem::transmute(fn_ptr);
         f(env, s)
+    }
+
+    fn to_protected(v: i32) -> ProtectionState {
+        match v {
+            0 => ProtectionState::Protected,
+            1 => ProtectionState::NotProtected,
+            2 => ProtectionState::Unsupported,
+            3 => ProtectionState::PermissionDenied,
+            _ => ProtectionState::Unknown,
+        }
+    }
+
+    fn to_capability(v: i32) -> CapabilityState {
+        match v {
+            0 => CapabilityState::Supported,
+            1 => CapabilityState::Unsupported,
+            2 => CapabilityState::PermissionDenied,
+            3 => CapabilityState::Unknown,
+            _ => CapabilityState::Failed,
+        }
     }
 
     #[no_mangle]
@@ -258,14 +271,58 @@ mod android_jni {
     }
 
     #[no_mangle]
-    pub extern "system" fn Java_eu_omijia_nexus_NativeBridge_nativeRunDemo(
+    pub extern "system" fn Java_eu_omijia_nexus_NativeBridge_nativeEvaluate(
         env: JniEnv,
         _class: JClass,
+        gms: i32,
+        fcm: i32,
+        shizuku: i32,
+        device_supported: i32,
     ) -> JString {
-        // Reuse core logic
-        let _ = env;
-        let msg = "demo: healthy=false issues=3 actions=0\0";
-        unsafe { new_string_utf(env, msg.as_ptr() as *const c_char) }
+        let core = NexusCore::new();
+        let snap = SystemSnapshot {
+            gms_protection: to_protected(gms),
+            fcm_connection: to_capability(fcm),
+            shizuku_available: shizuku != 0,
+            device_supported: device_supported != 0,
+        };
+        let res = core.evaluate(&snap);
+        let json = serde_json::json!({
+            "healthy": res.healthy,
+            "issues": res.issues,
+            "action_count": res.actions.len(),
+        });
+        let s = format!("{}\0", json);
+        unsafe { new_string_utf(env, s.as_ptr() as *const c_char) }
+    }
+
+    #[no_mangle]
+    pub extern "system" fn Java_eu_omijia_nexus_NativeBridge_nativeReport(
+        env: JniEnv,
+        _class: JClass,
+        gms: i32,
+        fcm: i32,
+        shizuku: i32,
+        device_supported: i32,
+    ) -> JString {
+        let core = NexusCore::new();
+        let snap = SystemSnapshot {
+            gms_protection: to_protected(gms),
+            fcm_connection: to_capability(fcm),
+            shizuku_available: shizuku != 0,
+            device_supported: device_supported != 0,
+        };
+        let r = core.generate_report(&snap);
+        let json = serde_json::json!({
+            "device_supported": r.device_supported,
+            "healthy": r.healthy,
+            "issues": r.issues,
+            "action_count": r.action_count,
+            "summary": r.summary,
+            "shizuku": format!("{:?}", r.shizuku),
+        });
+        let s = format!("{}\0", json);
+        unsafe { new_string_utf(env, s.as_ptr() as *const c_char) }
     }
 }
 

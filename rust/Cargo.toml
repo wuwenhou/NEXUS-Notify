@@ -12,7 +12,6 @@ members = [
     "nexus-storage",
     "nexus-core",
     "nexus-bridge",
-    "uniffi-bindgen",
 ]
 
 [workspace.package]

@@ -5,5 +5,6 @@ object NativeBridge {
         System.loadLibrary("nexus_bridge")
     }
     external fun nativeGreet(): String
-    external fun nativeRunDemo(): String
+    external fun nativeEvaluate(gms: Int, fcm: Int, shizuku: Int, deviceSupported: Int): String
+    external fun nativeReport(gms: Int, fcm: Int, shizuku: Int, deviceSupported: Int): String
 }

@@ -207,6 +207,7 @@ dependencies = [
  "nexus-domain",
  "nexus-policy",
  "serde",
+ "serde_json",
  "uniffi",
 ]
 
@@ -502,13 +503,6 @@ dependencies = [
  "uniffi_bindgen",
  "uniffi_core",
  "uniffi_macros",
-]
-
-[[package]]
-name = "uniffi-bindgen"
-version = "0.1.0"
-dependencies = [
- "uniffi_bindgen",
 ]
 
 [[package]]
