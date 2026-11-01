@@ -5,3 +5,6 @@ android/app/build
 *.so
 *.apk
 android/local.properties
+android/app/build/
+android/build/
+rust/target/
