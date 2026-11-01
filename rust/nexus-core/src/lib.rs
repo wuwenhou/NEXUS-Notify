@@ -1,12 +1,20 @@
 //! Orchestrator wiring domain, policy, oem, fcm, audit, storage.
 
 use nexus_audit::AuditLog;
-use nexus_domain::{DeviceProfile, ShizukuStatus};
+use nexus_domain::{DeviceProfile, GmsFreezeState, ShizukuStatus};
 use nexus_fcm as fcm;
 use nexus_policy::SystemSnapshot;
 use nexus_oem_xiaomi as oem;
 use nexus_policy::{PolicyEngine, SystemSnapshot as PolicySnapshot};
 use nexus_storage::AppConfig;
+
+#[derive(Debug, Clone)]
+pub struct GmsDiagnosis {
+    pub freeze_state: GmsFreezeState,
+    pub protection: nexus_domain::ProtectionState,
+    pub needs_protection: bool,
+    pub summary: String,
+}
 
 #[derive(Debug, Clone)]
 pub struct DiagnosticReport {
@@ -76,6 +84,21 @@ impl NexusCore {
             healthy: res.healthy,
             issues: res.issues,
             action_count: res.actions.len(),
+            summary,
+        }
+    }
+
+    pub fn diagnose_gms(&self, freeze: GmsFreezeState, protection: nexus_domain::ProtectionState) -> GmsDiagnosis {
+        let needs = freeze.is_frozen() || protection == nexus_domain::ProtectionState::NotProtected;
+        let summary = if needs {
+            "GMS needs protection".to_string()
+        } else {
+            "GMS OK".to_string()
+        };
+        GmsDiagnosis {
+            freeze_state: freeze,
+            protection,
+            needs_protection: needs,
             summary,
         }
     }

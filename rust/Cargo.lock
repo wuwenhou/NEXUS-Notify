@@ -205,7 +205,9 @@ version = "0.1.0"
 dependencies = [
  "nexus-core",
  "nexus-domain",
+ "nexus-fcm",
  "nexus-policy",
+ "nexus-recovery",
  "serde",
  "serde_json",
  "uniffi",

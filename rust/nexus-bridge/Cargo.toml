@@ -11,7 +11,9 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 nexus-core = { path = "../nexus-core" }
 nexus-domain = { path = "../nexus-domain" }
+nexus-fcm = { path = "../nexus-fcm" }
 nexus-policy = { path = "../nexus-policy" }
+nexus-recovery = { path = "../nexus-recovery" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 

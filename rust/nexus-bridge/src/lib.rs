@@ -225,7 +225,9 @@ mod android_jni {
     use std::os::raw::{c_char, c_void};
     use nexus_core::NexusCore;
     use nexus_domain::{CapabilityState, ProtectionState};
+    use nexus_fcm;
     use nexus_policy::SystemSnapshot;
+    use nexus_recovery::{RecoveryPlan, RecoveryReason};
 
     type JniEnv = *mut c_void;
     type JClass = *mut c_void;
@@ -291,6 +293,77 @@ mod android_jni {
             "healthy": res.healthy,
             "issues": res.issues,
             "action_count": res.actions.len(),
+        });
+        let s = format!("{}\0", json);
+        unsafe { new_string_utf(env, s.as_ptr() as *const c_char) }
+    }
+
+    #[no_mangle]
+    pub extern "system" fn Java_eu_omijia_nexus_NativeBridge_nativeGmsDiagnose(
+        env: JniEnv,
+        _class: JClass,
+        freeze: i32,
+        protection: i32,
+    ) -> JString {
+        let core = NexusCore::new();
+        let freeze_state = match freeze {
+            0 => nexus_domain::GmsFreezeState::NotFrozen,
+            1 => nexus_domain::GmsFreezeState::Frozen,
+            _ => nexus_domain::GmsFreezeState::Unknown,
+        };
+        let prot = to_protected(protection);
+        let d = core.diagnose_gms(freeze_state, prot);
+        let json = serde_json::json!({
+            "freeze_state": format!("{:?}", d.freeze_state),
+            "protection": format!("{:?}", d.protection),
+            "needs_protection": d.needs_protection,
+            "summary": d.summary,
+        });
+        let s = format!("{}\0", json);
+        unsafe { new_string_utf(env, s.as_ptr() as *const c_char) }
+    }
+
+    #[no_mangle]
+    pub extern "system" fn Java_eu_omijia_nexus_NativeBridge_nativeFcmDiagnose(
+        env: JniEnv,
+        _class: JClass,
+        observed: i32,
+    ) -> JString {
+        let state = match observed {
+            0 => nexus_domain::CapabilityState::Supported,
+            1 => nexus_domain::CapabilityState::Unsupported,
+            2 => nexus_domain::CapabilityState::PermissionDenied,
+            3 => nexus_domain::CapabilityState::Unknown,
+            _ => nexus_domain::CapabilityState::Failed,
+        };
+        let d = nexus_fcm::build_diagnostic(state, "probed");
+        let reconnect = nexus_fcm::should_request_reconnect(&d);
+        let json = serde_json::json!({
+            "ports": d.ports_checked,
+            "connection_observed": format!("{:?}", d.connection_observed),
+            "should_reconnect": reconnect,
+        });
+        let s = format!("{}\0", json);
+        unsafe { new_string_utf(env, s.as_ptr() as *const c_char) }
+    }
+
+    #[no_mangle]
+    pub extern "system" fn Java_eu_omijia_nexus_NativeBridge_nativeRecoveryPlan(
+        env: JniEnv,
+        _class: JClass,
+        reason: i32,
+    ) -> JString {
+        let r = match reason {
+            0 => RecoveryReason::BootCompleted,
+            1 => RecoveryReason::ShizukuReconnected,
+            2 => RecoveryReason::PermissionLost,
+            _ => RecoveryReason::Unknown,
+        };
+        let plan = RecoveryPlan::from_reason(r);
+        let actions: Vec<String> = plan.actions.iter().map(|a| format!("{:?}", a)).collect();
+        let json = serde_json::json!({
+            "reason": format!("{:?}", plan.reason),
+            "actions": actions,
         });
         let s = format!("{}\0", json);
         unsafe { new_string_utf(env, s.as_ptr() as *const c_char) }

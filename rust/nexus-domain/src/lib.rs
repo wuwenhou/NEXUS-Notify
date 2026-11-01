@@ -168,6 +168,20 @@ impl AuditEntry {
     }
 }
 
+/// GMS freeze state on Xiaomi (Greezer).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum GmsFreezeState {
+    NotFrozen,
+    Frozen,
+    Unknown,
+}
+
+impl GmsFreezeState {
+    pub fn is_frozen(&self) -> bool {
+        matches!(self, GmsFreezeState::Frozen)
+    }
+}
+
 /// Shizuku service status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ShizukuStatus {
