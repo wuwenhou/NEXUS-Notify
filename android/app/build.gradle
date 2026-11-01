@@ -1,0 +1,16 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'eu.omijia.nexus'
+    compileSdk 34
+    defaultConfig {
+        applicationId "eu.omijia.nexus"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "0.1.0"
+    }
+}
+
+dependencies {
+}

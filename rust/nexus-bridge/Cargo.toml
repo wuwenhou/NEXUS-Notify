@@ -5,6 +5,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [dependencies]
 nexus-core = { path = "../nexus-core" }
 nexus-domain = { path = "../nexus-domain" }

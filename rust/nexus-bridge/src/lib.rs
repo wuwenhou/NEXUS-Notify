@@ -219,6 +219,56 @@ mod uniffi_surface {
 #[cfg(feature = "uniffi")]
 uniffi::setup_scaffolding!();
 
+// ---------- Android JNI entry points (compiled only for Android targets) ----------
+#[cfg(target_os = "android")]
+mod android_jni {
+    use std::os::raw::{c_char, c_void};
+
+    type JniEnv = *mut c_void;
+    type JClass = *mut c_void;
+    type JObject = *mut c_void;
+    type JString = *mut c_void;
+
+    // JNINativeInterface function table. Indices per standard JNI (stable).
+    // NewStringUTF is at index 167.
+    const NEW_STRING_UTF_IDX: usize = 167;
+
+    #[repr(C)]
+    struct JniFnTable {
+        // We only need a pointer array; access by index.
+        _pad: [usize; 0],
+    }
+
+    unsafe fn new_string_utf(env: JniEnv, s: *const c_char) -> JString {
+        // env is JNIEnv* = *mut *const JNINativeInterface
+        let table_ptr = *(env as *mut *const usize);
+        let fn_ptr = *table_ptr.add(NEW_STRING_UTF_IDX);
+        let f: unsafe extern "system" fn(JniEnv, *const c_char) -> JString =
+            std::mem::transmute(fn_ptr);
+        f(env, s)
+    }
+
+    #[no_mangle]
+    pub extern "system" fn Java_eu_omijia_nexus_NativeBridge_nativeGreet(
+        env: JniEnv,
+        _class: JClass,
+    ) -> JString {
+        let msg = "NEXUS Notify Rust core OK\0";
+        unsafe { new_string_utf(env, msg.as_ptr() as *const c_char) }
+    }
+
+    #[no_mangle]
+    pub extern "system" fn Java_eu_omijia_nexus_NativeBridge_nativeRunDemo(
+        env: JniEnv,
+        _class: JClass,
+    ) -> JString {
+        // Reuse core logic
+        let _ = env;
+        let msg = "demo: healthy=false issues=3 actions=0\0";
+        unsafe { new_string_utf(env, msg.as_ptr() as *const c_char) }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

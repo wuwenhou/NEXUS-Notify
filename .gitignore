@@ -4,3 +4,4 @@ android/.gradle
 android/app/build
 *.so
 *.apk
+android/local.properties
